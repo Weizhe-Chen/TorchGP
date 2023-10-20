@@ -1,2 +1,2 @@
 # TorchGP
-Single-file PyTorch scripts of Gaussian process models
+Simple PyTorch implementation of Gaussian process models for research and education
