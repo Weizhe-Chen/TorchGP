@@ -1,0 +1,3 @@
+torch
+matplotlib
+pytorch-minimize @ git+https://github.com/gngdb/pytorch-minimize.git
