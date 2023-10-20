@@ -1,0 +1,3 @@
+lxml
+mkdocs-material
+mkdocstrings-python
