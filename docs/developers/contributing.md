@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 # Guidelines for Contributing
 
 TorchGP values the contributions of interested individuals or groups.

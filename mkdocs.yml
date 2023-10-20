@@ -20,8 +20,8 @@ theme:
   custom_dir: docs/overrides
   icon:
     repo: fontawesome/brands/github
-  logo: assets/images/social/logo.svg
-  favicon: assets/images/social/logo.svg
+  logo: assets/images/social/logo.png
+  favicon: assets/images/social/favicon.png
   features:
     - navigation.instant
     - navigation.tracking
