@@ -17,21 +17,17 @@ class GPRModel(BaseModel):
         self,
         kernel: BaseKernel,
         noise_variance: float,
-        device_name: str,
+        device_name: str = 'cpu',
     ) -> None:
         likelihood = GaussianLikelihood(noise_variance)
         super().__init__(kernel, likelihood, device_name)
 
     def learn(
         self,
-        x_new: np.ndarray,
-        y_new: np.ndarray,
         optimizer: str = "l-bfgs-b",
         num_steps: int = 100,
         verbose: bool = False,
     ) -> None:
-        self.add_data(x_new, y_new)
-
         self.train()
         if optimizer == "l-bfgs-b":
             self._learn_with_lbfgsb(num_steps, verbose)
@@ -79,7 +75,7 @@ class GPRModel(BaseModel):
         diag_only: bool = True,
         include_likelihood: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        test_x = torch.tensor(x_test, self.dtype, self.device)
+        test_x = self._to_tensor(x_test)
         mean, covar = self.forward(test_x, diag_only)
         if include_likelihood:
             mean, covar = self.likelihood(mean, covar, diag_only)
@@ -87,7 +83,7 @@ class GPRModel(BaseModel):
 
     def common_terms(self):
         Kyy = self.kernel(self.train_x)
-        Kyy.diagonal().add_(self.noise_variance)
+        Kyy.diagonal().add_(self.likelihood.noise_variance)
         TrilKyy = utils.tril(Kyy)
         InvKyy_y = utils.tril_solve(TrilKyy, self.train_y)
         return TrilKyy, InvKyy_y
@@ -123,5 +119,4 @@ class GPRModel(BaseModel):
     @noise_variance.setter
     def noise_variance(self, value):
         self.free_noise_variance = Parameter(
-            utils.constrained_to_free(
-                torch.tensor(value, self.dtype, self.device)))
+            utils.constrained_to_free(self._to_tensor(value)))

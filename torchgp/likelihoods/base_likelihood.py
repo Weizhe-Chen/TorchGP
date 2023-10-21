@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Tuple
 
+import numpy as np
 import torch
 
 from .. import utils
@@ -20,3 +21,6 @@ class BaseLikelihood(torch.nn.Module, metaclass=ABCMeta):
         diag_only: bool,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
+
+    def _to_tensor(self, x: np.ndarray) -> torch.Tensor:
+        return torch.tensor(x, dtype=self.dtype, device=self.device)

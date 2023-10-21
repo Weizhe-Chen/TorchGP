@@ -1,11 +1,15 @@
 from abc import ABCMeta, abstractmethod
+
+import numpy as np
 import torch
 from torch.nn.parameter import Parameter
 
 from .. import utils
 
+
 class BaseKernel(torch.nn.Module, metaclass=ABCMeta):
-    def __init__(self, output_scale: float, device_name: str='cpu') -> None:
+
+    def __init__(self, output_scale: float, device_name: str = 'cpu') -> None:
         super().__init__()
         self.dtype, self.device = utils.get_dtype_and_device(device_name)
         self.output_scale = output_scale
@@ -17,8 +21,7 @@ class BaseKernel(torch.nn.Module, metaclass=ABCMeta):
     @output_scale.setter
     def output_scale(self, value):
         self.free_output_scale = Parameter(
-            utils.constrained_to_free(
-                torch.tensor(value, self.dtype, self.device)))
+            utils.constrained_to_free(self._to_tensor(value)))
 
     def diag(self, x):
         return self.output_scale * torch.ones(x.shape[0], 1).to(x)
@@ -43,3 +46,6 @@ class BaseKernel(torch.nn.Module, metaclass=ABCMeta):
 
         """
         raise NotImplementedError
+
+    def _to_tensor(self, x: np.ndarray) -> torch.Tensor:
+        return torch.tensor(x, dtype=self.dtype, device=self.device)

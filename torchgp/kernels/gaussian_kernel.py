@@ -24,12 +24,12 @@ class GaussianKernel(BaseKernel):
     def input_scale(self, value):
         self.free_input_scale = Parameter(
             utils.constrained_to_free(
-                torch.tensor(value, self.dtype, self.device)))
+                torch.tensor(value, dtype=self.dtype, device=self.device)))
 
     def forward(self, x1, x2=None):
         if x2 is None:
             x2 = x1
-        x1 = x1 / self.length_scale
-        x2 = x2 / self.length_scale
+        x1 = x1 / self.input_scale
+        x2 = x2 / self.input_scale
         dist = torch.cdist(x1, x2, p=2)
         return self.output_scale * torch.exp(-0.5 * dist.square())

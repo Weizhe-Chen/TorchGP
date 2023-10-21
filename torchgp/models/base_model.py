@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from typing import Tuple
 import numpy as np
 import torch
@@ -7,7 +7,8 @@ from .. import utils
 from ..kernels import BaseKernel
 from ..likelihoods import BaseLikelihood
 
-class BaseModel(ABC):
+
+class BaseModel(torch.nn.Module, metaclass=ABCMeta):
     """Interface of a model."""
 
     @abstractmethod
@@ -15,7 +16,7 @@ class BaseModel(ABC):
         self,
         kernel: BaseKernel,
         likelihood: BaseLikelihood,
-        device_name: str,
+        device_name: str = 'cpu',
     ) -> None:
         r"""Initializes a model with the specified device name.
 
@@ -75,11 +76,11 @@ class BaseModel(ABC):
     def add_data(self, x_new: np.ndarray, y_new: np.ndarray) -> None:
         self.validate_data(x_new, y_new)
         if not (hasattr(self, 'x_train') and hasattr(self, 'y_train')):
-            self.train_x = torch.tensor(x_new, self.dtype, self.device)
-            self.train_y = torch.tensor(y_new, self.dtype, self.device)
+            self.train_x = self._to_tensor(x_new)
+            self.train_y = self._to_tensor(y_new)
         else:
-            new_x = torch.tensor(x_new, self.dtype, self.device)
-            new_y = torch.tensor(y_new, self.dtype, self.device)
+            new_x = self._to_tensor(x_new)
+            new_y = self._to_tensor(y_new)
             self.x_train = torch.cat((self.x_train, new_x), dim=0)
             self.y_train = torch.cat((self.y_train, new_y), dim=0)
 
@@ -116,3 +117,6 @@ class BaseModel(ABC):
         if (hasattr(self, 'y_train')
                 and y_new.shape[1] != self.y_train.shape[1]):
             raise ValueError("y_train and y_new should have same shape.")
+
+    def _to_tensor(self, x: np.ndarray) -> torch.Tensor:
+        return torch.tensor(x, dtype=self.dtype, device=self.device)
