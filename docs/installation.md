@@ -7,6 +7,7 @@ comments: true
 ```
 git clone https://github.com/Weizhe-Chen/TorchGP.git
 cd TorchGP
+pip install -r requirements.txt
 pip install -e .
 ```
 
