@@ -8,10 +8,7 @@ from .. import utils
 
 
 class GaussianLikelihood(BaseLikelihood):
-
-    def __init__(self,
-                 noise_variance: float,
-                 device_name: str = 'cpu') -> None:
+    def __init__(self, noise_variance: float, device_name: str = "cpu") -> None:
         super().__init__(device_name)
         self.noise_variance = noise_variance
 
@@ -34,4 +31,5 @@ class GaussianLikelihood(BaseLikelihood):
     @noise_variance.setter
     def noise_variance(self, value):
         self.free_noise_variance = Parameter(
-            utils.constrained_to_free(self._to_tensor(value)))
+            utils.constrained_to_free(self._to_tensor(value))
+        )

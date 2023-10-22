@@ -47,6 +47,7 @@ def get_dtype_and_device(device_name: str) -> Tuple[torch.dtype, torch.device]:
 def to_array(tensor):
     return tensor.detach().cpu().numpy()
 
+
 def tril(A, base_jitter=1e-6, num_attempts=3):
     L, info = torch.linalg.cholesky_ex(A)
     if not torch.any(info):
@@ -67,7 +68,9 @@ def tril(A, base_jitter=1e-6, num_attempts=3):
             return L
     raise ValueError(
         f"Cholesky decomposition failed after adding {jitter} to the diagonal."
-        + "Try increasing the `base_jitter` or `num_attempts` arguments.")
+        + "Try increasing the `base_jitter` or `num_attempts` arguments."
+    )
+
 
 def tril_solve(L, B):
     """
@@ -75,11 +78,13 @@ def tril_solve(L, B):
     """
     return torch.cholesky_solve(B, L)
 
+
 def tril_inv_matmul(L, B):
     """
     Returns L^{-1} @ B, where L is a lower-triangular matrix.
     """
     return torch.linalg.solve_triangular(L, B, upper=False)
+
 
 def tril_diag_quadratic(L):
     """
@@ -88,9 +93,17 @@ def tril_diag_quadratic(L):
     """
     return L.square().sum(dim=0).view(-1, 1)
 
+
 def tril_logdet(L):
     """
     Computes the log determinant of a matrix A = L @ L.T using the
     Cholesky decomposition of A.
     """
     return 2.0 * L.diagonal().log().sum()
+
+
+def trace_quadratic(A):
+    """
+    returns the trace of A.T @ A or A @ A.T
+    """
+    return A.square().sum()

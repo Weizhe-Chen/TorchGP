@@ -6,12 +6,11 @@ from .base_kernel import BaseKernel
 
 
 class GaussianKernel(BaseKernel):
-
     def __init__(
         self,
         input_scale: float,
         output_scale: float,
-        device_name: str = 'cpu',
+        device_name: str = "cpu",
     ) -> None:
         super().__init__(output_scale, device_name)
         self.input_scale = input_scale
@@ -24,7 +23,9 @@ class GaussianKernel(BaseKernel):
     def input_scale(self, value):
         self.free_input_scale = Parameter(
             utils.constrained_to_free(
-                torch.tensor(value, dtype=self.dtype, device=self.device)))
+                torch.tensor(value, dtype=self.dtype, device=self.device)
+            )
+        )
 
     def forward(self, x1, x2=None):
         if x2 is None:
