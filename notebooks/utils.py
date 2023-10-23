@@ -67,4 +67,3 @@ def plot_result(
     ax.set_ylabel("y")
     ax.yaxis.set_ticks(np.arange(-2, 3, 1))
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%0.1f"))
-    if plot_legend:

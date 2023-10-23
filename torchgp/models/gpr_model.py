@@ -59,27 +59,25 @@ class GPRModel(BaseModel):
         optimizer.step(closure)
 
     def _learn_with_adam(self, num_steps: int, verbose: bool = False):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
+        hyper_params, nn_params = [], []
+        for name, param in self.named_parameters():
+            if "nn" in name:
+                nn_params.append(param)
+            else:
+                hyper_params.append(param)
+        hyper_optimizer = torch.optim.Adam(hyper_params, lr=0.01)
+        nn_optimizer = torch.optim.Adam(nn_params, lr=0.001) if nn_params else None
         progress_bar = tqdm(range(num_steps), disable=not verbose)
         for i in progress_bar:
-            optimizer.zero_grad()
+            hyper_optimizer.zero_grad()
+            if nn_optimizer:
+                nn_optimizer.zero_grad()
             loss = -self.evidence()
             loss.backward()
-            optimizer.step()
+            hyper_optimizer.step()
+            if nn_optimizer:
+                nn_optimizer.step()
             progress_bar.set_description(f"Iter: {i:02d} loss: {loss.item(): .2f}")
-
-    @torch.no_grad()
-    def predict(
-        self,
-        x_test: np.ndarray,
-        diag_only: bool = True,
-        include_likelihood: bool = True,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        test_x = self._to_tensor(x_test)
-        mean, covar = self.forward(test_x, diag_only)
-        if include_likelihood:
-            mean, covar = self.likelihood(mean, covar, diag_only)
-        return utils.to_array(mean), utils.to_array(covar)
 
     def common_terms(self):
         Kyy = self.kernel(self.train_x)  # O(N^2)

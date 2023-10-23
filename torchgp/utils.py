@@ -1,5 +1,6 @@
 from typing import Tuple
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -107,3 +108,54 @@ def trace_quadratic(A):
     returns the trace of A.T @ A or A @ A.T
     """
     return A.square().sum()
+
+
+class StandardScaler:
+    def __init__(self, values):
+        if values.ndim != 2:
+            raise ValueError("values.shape=(num_samples, num_dims)")
+        self.scale = values.std(axis=0, keepdims=True)
+        if np.any(self.scale <= 0.0):
+            raise ValueError("scale must be positive")
+        self.mean = values.mean(axis=0, keepdims=True)
+
+    def preprocess(self, raw):
+        transformed = (raw - self.mean) / self.scale
+        return transformed
+
+    def postprocess_mean(self, transformed):
+        raw = transformed * self.scale + self.mean
+        return raw
+
+    def postprocess_std(self, transformed):
+        raw = transformed * self.scale
+        return raw
+
+    def postprocess_covar(self, transformed):
+        raw = transformed * (self.scale ** 2)
+        return raw
+
+
+class MinMaxScaler:
+    def __init__(self, values, expected_range=(-1.0, 1.0)):
+        self.min = expected_range[0]
+        self.max = expected_range[1]
+        # `ptp` is the acronym for ‘peak to peak’.
+        self.ptp = expected_range[1] - expected_range[0]
+        if self.ptp <= 0.0:
+            raise ValueError("Expected range must be positive.")
+        self.data_min = values.min(axis=0, keepdims=True)
+        self.data_max = values.max(axis=0, keepdims=True)
+        self.data_ptp = self.data_max - self.data_min
+        if np.any(self.data_ptp <= 0.0):
+            raise ValueError("Data range must be positive.")
+
+    def preprocess(self, raw):
+        standardized = (raw - self.data_min) / self.data_ptp
+        transformed = standardized * self.ptp + self.min
+        return transformed
+
+    def postprocess(self, transformed):
+        standardized = (transformed - self.min) / self.ptp
+        raw = standardized * self.data_ptp + self.data_min
+        return raw

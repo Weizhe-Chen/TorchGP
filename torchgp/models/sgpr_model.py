@@ -24,17 +24,13 @@ class SGPRModel(GPRModel):
         self.jitter = jitter
 
     @property
-    def x_pseudo(self) -> torch.Tensor:
+    def x_pseudo(self) -> np.ndarray:
         return utils.to_array(self.pseudo_x)
-
-    @x_pseudo.setter
-    def x_pseudo(self, x_pseudo: np.ndarray) -> None:
-        self.pseudo_x = Parameter(self._to_tensor(x_pseudo))
 
     @property
     @torch.inference_mode()
-    def f_pseudo(self) -> torch.Tensor:
-        return self.forward(self.pseudo_x)[0]
+    def f_pseudo(self) -> np.ndarray:
+        return utils.to_array(self.forward(self.pseudo_x)[0])
 
     @property
     def num_pseudo(self) -> int:

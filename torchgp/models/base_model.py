@@ -56,33 +56,32 @@ class BaseModel(torch.nn.Module, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def predict(self, x_test: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Makes predictions.
 
-        Args:
-            x_test (np.ndarray): Test inputs of shape (num_inputs, dim_inputs).
-
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: A tuple containing predictive mean
-                and predictive standard deviation of shape (num_inputs, 1).
-
-        Raises:
-            NotImplementedError: This is an abstract method and must be
-                implemented by derived classes.
-        """
-        raise NotImplementedError
+    @torch.no_grad()
+    def predict(
+        self,
+        x_test: np.ndarray,
+        diag_only: bool = True,
+        include_likelihood: bool = True,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        test_x = self._to_tensor(x_test)
+        mean, covar = self.forward(test_x, diag_only)
+        if include_likelihood:
+            mean, covar = self.likelihood(mean, covar, diag_only)
+        mean = utils.to_array(mean)
+        covar = utils.to_array(covar)
+        return mean, covar
 
     def add_data(self, x_new: np.ndarray, y_new: np.ndarray) -> None:
         self.validate_data(x_new, y_new)
-        if not (hasattr(self, "x_train") and hasattr(self, "y_train")):
+        if not (hasattr(self, "train_x") and hasattr(self, "train_y")):
             self.train_x = self._to_tensor(x_new)
             self.train_y = self._to_tensor(y_new)
         else:
             new_x = self._to_tensor(x_new)
             new_y = self._to_tensor(y_new)
-            self.x_train = torch.cat((self.x_train, new_x), dim=0)
-            self.y_train = torch.cat((self.y_train, new_y), dim=0)
+            self.train_x = torch.cat((self.train_x, new_x))
+            self.train_y = torch.cat((self.train_y, new_y))
 
     def validate_data(self, x_new: np.ndarray, y_new: np.ndarray) -> None:
         r"""Check if the inputs `x_new` and `y_new` are valid.
@@ -111,10 +110,10 @@ class BaseModel(torch.nn.Module, metaclass=ABCMeta):
             raise ValueError("Only support univariate output for now.")
         if x_new.shape[0] != y_new.shape[0]:
             raise ValueError("x_train and y_train should have same length.")
-        if hasattr(self, "x_train") and x_new.shape[1] != self.x_train.shape[1]:
-            raise ValueError("x_train and x_new should have same shape.")
-        if hasattr(self, "y_train") and y_new.shape[1] != self.y_train.shape[1]:
-            raise ValueError("y_train and y_new should have same shape.")
+        if hasattr(self, "train_x") and x_new.shape[1] != self.train_x.shape[1]:
+            raise ValueError("train_x and x_new should have same shape.")
+        if hasattr(self, "train_y") and y_new.shape[1] != self.train_y.shape[1]:
+            raise ValueError("train_y and y_new should have same shape.")
 
     def _to_tensor(self, x: np.ndarray) -> torch.Tensor:
         return torch.tensor(x, dtype=self.dtype, device=self.device)
