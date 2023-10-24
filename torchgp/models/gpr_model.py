@@ -2,8 +2,6 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from torch.nn import Parameter
-from tqdm import tqdm
 
 from .. import utils
 from ..kernels import BaseKernel
@@ -20,64 +18,6 @@ class GPRModel(BaseModel):
     ) -> None:
         likelihood = GaussianLikelihood(noise_variance)
         super().__init__(kernel, likelihood, device_name)
-
-    def learn(
-        self,
-        optimizer: str = "l-bfgs-b",
-        num_steps: int = 100,
-        verbose: bool = False,
-    ) -> None:
-        self.train()
-        if optimizer == "l-bfgs-b":
-            self._learn_with_lbfgsb(num_steps, verbose)
-        elif optimizer == "adam":
-            self._learn_with_adam(num_steps, verbose)
-        else:
-            raise ValueError(f"Unknown optimizer: {optimizer}")
-        self.eval()
-
-    def _learn_with_lbfgsb(self, num_steps: int, verbose: bool = False):
-        from pytorch_minimize.optim import MinimizeWrapper
-
-        optimizer = MinimizeWrapper(
-            self.parameters(),
-            dict(
-                method="L-BFGS-B",
-                options={
-                    "disp": verbose,
-                    "maxiter": num_steps,
-                },
-            ),
-        )
-
-        def closure():
-            optimizer.zero_grad()
-            loss = -self.evidence()
-            loss.backward()
-            return loss
-
-        optimizer.step(closure)
-
-    def _learn_with_adam(self, num_steps: int, verbose: bool = False):
-        hyper_params, nn_params = [], []
-        for name, param in self.named_parameters():
-            if "nn" in name:
-                nn_params.append(param)
-            else:
-                hyper_params.append(param)
-        hyper_optimizer = torch.optim.Adam(hyper_params, lr=0.01)
-        nn_optimizer = torch.optim.Adam(nn_params, lr=0.001) if nn_params else None
-        progress_bar = tqdm(range(num_steps), disable=not verbose)
-        for i in progress_bar:
-            hyper_optimizer.zero_grad()
-            if nn_optimizer:
-                nn_optimizer.zero_grad()
-            loss = -self.evidence()
-            loss.backward()
-            hyper_optimizer.step()
-            if nn_optimizer:
-                nn_optimizer.step()
-            progress_bar.set_description(f"Iter: {i:02d} loss: {loss.item(): .2f}")
 
     def common_terms(self):
         Kyy = self.kernel(self.train_x)  # O(N^2)

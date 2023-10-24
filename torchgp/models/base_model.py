@@ -1,9 +1,11 @@
 from abc import ABCMeta, abstractmethod
 from typing import Tuple
+
 import numpy as np
 import torch
-from .. import utils
+from tqdm import tqdm
 
+from .. import utils
 from ..kernels import BaseKernel
 from ..likelihoods import BaseLikelihood
 
@@ -30,32 +32,63 @@ class BaseModel(torch.nn.Module, metaclass=ABCMeta):
         self.kernel = kernel
         self.likelihood = likelihood
 
-    @abstractmethod
     def learn(
         self,
-        x_new: np.ndarray,
-        y_new: np.ndarray,
-        optimizer: str,
-        args: dict,
+        optimizer: str = "l-bfgs-b",
+        num_steps: int = 100,
+        verbose: bool = False,
     ) -> None:
-        r"""Optimizes the model parameters.
+        self.train()
+        if optimizer == "l-bfgs-b":
+            self._learn_with_lbfgsb(num_steps, verbose)
+        elif optimizer == "adam":
+            self._learn_with_adam(num_steps, verbose)
+        else:
+            raise ValueError(f"Unknown optimizer: {optimizer}")
+        self.eval()
 
-        Args:
-            x_new (np.ndarray): New training inputs of shape
-                (num_inputs, dim_inputs).
-            y_new (np.ndarray): New training outputs of shape
-                (num_outputs, dim_outputs).
-            optimizer (str): Name of the optimizer to be used:
-                * adam
-                * l-bfgs-b
-            args (dict): Parameters for the optimizer.
+    def _learn_with_lbfgsb(self, num_steps: int, verbose: bool = False):
+        from pytorch_minimize.optim import MinimizeWrapper
 
-        Raises:
-            NotImplementedError: This is an abstract method and must be
-                implemented by derived classes.
-        """
-        raise NotImplementedError
+        optimizer = MinimizeWrapper(
+            self.parameters(),
+            dict(
+                method="L-BFGS-B",
+                options={
+                    "disp": verbose,
+                    "maxiter": num_steps,
+                },
+            ),
+        )
 
+        def closure():
+            optimizer.zero_grad()
+            loss = -self.evidence()
+            loss.backward()
+            return loss
+
+        optimizer.step(closure)
+
+    def _learn_with_adam(self, num_steps: int, verbose: bool = False):
+        hyper_params, nn_params = [], []
+        for name, param in self.named_parameters():
+            if "nn" in name:
+                nn_params.append(param)
+            else:
+                hyper_params.append(param)
+        hyper_optimizer = torch.optim.Adam(hyper_params, lr=0.01)
+        nn_optimizer = torch.optim.Adam(nn_params, lr=0.001) if nn_params else None
+        progress_bar = tqdm(range(num_steps), disable=not verbose)
+        for i in progress_bar:
+            hyper_optimizer.zero_grad()
+            if nn_optimizer:
+                nn_optimizer.zero_grad()
+            loss = -self.evidence()
+            loss.backward()
+            hyper_optimizer.step()
+            if nn_optimizer:
+                nn_optimizer.step()
+            progress_bar.set_description(f"Iter: {i:02d} loss: {loss.item(): .2f}")
 
     @torch.no_grad()
     def predict(
@@ -66,6 +99,11 @@ class BaseModel(torch.nn.Module, metaclass=ABCMeta):
     ) -> Tuple[np.ndarray, np.ndarray]:
         test_x = self._to_tensor(x_test)
         mean, covar = self.forward(test_x, diag_only)
+        if torch.any(covar <= 0.0):
+            print(
+                f"Warning: Negative variance detected: {covar[covar <= 0.0].min().item()}. Clamp to 1e-6."
+            )
+            covar.clamp_min_(1e-6)
         if include_likelihood:
             mean, covar = self.likelihood(mean, covar, diag_only)
         mean = utils.to_array(mean)

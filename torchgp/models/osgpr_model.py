@@ -18,6 +18,7 @@ class OSGPRModel(SGPRModel):
         noise_variance: float,
         device_name: str = "cpu",
         jitter: float = 1e-6,
+        keep_rate: float = 0.7,
     ) -> None:
         super().__init__(
             x_pseudo=x_pseudo,
@@ -26,6 +27,7 @@ class OSGPRModel(SGPRModel):
             device_name=device_name,
             jitter=jitter,
         )
+        self.keep_rate = keep_rate
 
     @property
     def has_memory(self) -> bool:
@@ -55,8 +57,8 @@ class OSGPRModel(SGPRModel):
             self.Suu = Suu.detach()
             self.Kuu = Kuu.detach()
 
-    def update_pseudo_x(self, keep_rate=0.7) -> None:
-        num_kept = int(keep_rate * self.num_pseudo)
+    def update_pseudo_x(self) -> None:
+        num_kept = int(self.keep_rate * self.num_pseudo)
         num_added = self.num_pseudo - num_kept
         kept_idx = np.random.permutation(self.num_pseudo)[:num_kept]
         added_idx = np.random.permutation(self.num_train)[:num_added]
