@@ -1,0 +1,75 @@
+digraph G{
+  rankdir="TB";  // Top-down layout. Try LR for left-right layout.
+  compound = true; // Allow edges between clusters.
+
+  // Concepts
+  "GPR" [href="./html/gpr.html"];
+  "SGPR" [href="./html/sgpr.html"];
+  "OSGPR" [href="./html/osgpr.html"];
+
+  // Relationship
+  "GPR" -> "SGPR" -> "OSGPR";
+
+  "elbo" -> "quadratic_terms";
+  "elbo" -> "log_terms";
+  "elbo" -> "trace_terms";
+
+  "quadratic_terms" -> "train_y";
+  "quadratic_terms" -> "noise_variance";
+  "quadratic_terms" -> "InvTrilD_InvTrilKvv_c";
+  "InvTrilD_InvTrilKvv_c" -> "TrilD";
+  "TrilD" -> "D";
+  "InvTrilD_InvTrilKvv_c" -> "InvTrilKvv_c";
+  "InvTrilKvv_c" -> "TrilKvv";
+  "TrilKvv" -> "Kvv";
+  "InvTrilKvv_c" -> "c";
+  "quadratic_terms" -> "InvTrilSuu_mu";
+  "InvTrilSuu_mu" -> "TrilSuu";
+  "TrilSuu" -> "Suu";
+  "InvTrilSuu_mu" -> "mu";
+
+  "log_terms" -> "TrilD";
+  "log_terms" -> "TrilSuu";
+  "log_terms" -> "TrilOldKuu";
+  "TrilOldKuu" -> "OldKuu";
+  "log_terms" -> "noise_variance";
+
+  "trace_terms" -> "InvSuu_Euu";
+  "InvSuu_Euu" -> "TrilSuu";
+  "InvSuu_Euu" -> "Euu";
+  "Euu" -> "Kuu";
+  "Euu" -> "Quu";
+  "Quu" -> "TrilKvv";
+  "Quu" -> "Kvu";
+  "trace_terms" -> "InvOldKuu_Euu";
+  "InvOldKuu_Euu" -> "TrilOldKuu";
+  "InvOldKuu_Euu" -> "Euu";
+  "trace_terms" -> "kff";
+  "trace_terms" -> "InvTrilKvv_Kvf";
+  "InvTrilKvv_Kvf" -> "TrilKvv";
+  "InvTrilKvv_Kvf" -> "Kvf";
+  "trace_terms" -> "noise_variance";
+
+  "c" -> "noise_variance";
+  "c" -> "Kvf";
+  "c" -> "train_y";
+  "c" -> "InvTrilSuu_Kuv";
+  "InvTrilSuu_Kuv" -> "TrilSuu";
+  "InvTrilSuu_Kuv" -> "Kuv";
+  "c" -> "InvTrilSuu_mu";
+
+  "D" -> "InvTrilKvv_Kvf";
+  "D" -> "noise_variance";
+  "D" -> "TrilSuu";
+  "D" -> "Kuv";
+  "D" -> "TrilKvv";
+  "D" -> "TrilOldKuu";
+  "D" -> "Kuv";
+  "D" -> "TrilKvv";
+
+  "predict" -> "Kss";
+  "predict" -> "TrilKvv";
+  "predict" -> "Kvs";
+  "predict" -> "TrilD";
+  "predict" -> "c";
+}
